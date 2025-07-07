@@ -1,33 +1,43 @@
 package cz.tony.skyinterview;
 
-import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
-import cz.tony.skyinterview.dto.MovieDto;
 import cz.tony.skyinterview.entity.Movie;
 import cz.tony.skyinterview.entity.Rating;
 import cz.tony.skyinterview.entity.User;
-import cz.tony.skyinterview.exception.BadRequestException;
-import cz.tony.skyinterview.exception.NotFoundException;
 import cz.tony.skyinterview.repo.MovieRepository;
 import cz.tony.skyinterview.repo.RatingRepository;
 import cz.tony.skyinterview.repo.UserRepository;
-import org.springframework.util.ObjectUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Service;
 
 /**
  * @author Antonin.Karasek
- * @since 2025-06-30
+ * @since 2025-09-17
  */
-@RestController
-@RequestMapping(value = "/movies", produces = "application/json")
+@Service
 public class MovieRatingService {
+
+    public enum MovieSort {
+        AVERAGE_RATING_DESC("averageRatingDesc"),
+        NO_SORT("noSort");
+
+        private final String sort;
+
+        MovieSort(String sort) {
+            this.sort = sort;
+        }
+
+        public static MovieSort getBySort(String sort) {
+            for (MovieSort movieSort : values()) {
+                if (movieSort.sort.equalsIgnoreCase(sort)) {
+                    return movieSort;
+                }
+            }
+            return null;
+        }
+    }
 
     private final MovieRepository movieRepository;
     private final UserRepository userRepository;
@@ -39,82 +49,57 @@ public class MovieRatingService {
         this.ratingRepository = ratingRepository;
     }
 
-    @GetMapping("")
-    public List<MovieDto> getMovies(@RequestParam(value = "sortBy", required = false) String sort) {
-        if (ObjectUtils.isEmpty(sort)) {
-            return movieRepository.findAll().stream()
-                    .map(MovieDto::new).toList();
+    public List<Movie> getMovies(@NonNull MovieSort sort) {
+        if (sort == MovieSort.NO_SORT) {
+            return movieRepository.findAll();
         }
 
-        if (!"averageRating".equalsIgnoreCase(sort)) {
-            throw new BadRequestException("Invalid sort parameter: " + sort);
+        if (sort == MovieSort.AVERAGE_RATING_DESC) {
+            return movieRepository.findAllByAverageRatingNotNullOrderByAverageRatingDesc();
         }
 
-        return movieRepository.findAllByAverageRatingNotNullOrderByAverageRatingDesc().stream()
-                .map(MovieDto::new).toList();
+        throw new IllegalArgumentException("Unsupported sort: " + sort);
     }
 
-    @GetMapping("/{id}")
-    public MovieDto getMovie(@PathVariable("id") Long movieId) {
-        return movieRepository.findById(movieId)
-                .map(MovieDto::new)
-                .orElseThrow(() -> new NotFoundException("Movie not found with id: " + movieId));
+    public Optional<Movie> getMovieById(@NonNull Long movieId) {
+        return movieRepository.findById(movieId);
     }
 
-    @PutMapping("/{id}/rate")
-    public MovieDto rateMovie(Principal authenticatedUser,
-                           @PathVariable("id") Long movieId,
-                           @RequestParam("rating") int rating) {
-        Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new NotFoundException("Movie not found with id: " + movieId));
-
-        String email = authenticatedUser.getName();
-
-        User user = userRepository.findById(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-
-        ratingRepository.findByUserAndMovie(user, movie)
-                .ifPresentOrElse(existingRating -> {
-                    // Update existing rating
-                    existingRating.setRating(rating);
-                    ratingRepository.save(existingRating);
-                }, () -> {
-                    // Create new rating if it doesn't exist
-                    Rating newRating = new Rating();
-                    newRating.setUser(user);
-                    newRating.setMovie(movie);
-                    newRating.setRating(rating);
-                    ratingRepository.save(newRating);
-                });
-
-        updateAverageRating(movieId, movie);
-
-        return new MovieDto(movie);
+    public Optional<User> getUserByEmail(@NonNull String email) {
+        return userRepository.findById(email);
     }
 
-    @DeleteMapping("/{id}/rate")
-    public MovieDto deleteRating(Principal authenticatedUser,
-                                 @PathVariable("id") Long movieId) {
-        Movie movie = movieRepository.findById(movieId)
-                .orElseThrow(() -> new NotFoundException("Movie not found with id: " + movieId));
+    public void rateMovie(User user, Movie movie, int rating) {
+        var existingRating = ratingRepository.findByUserAndMovie(user, movie);
+        if (existingRating.isPresent()) {
+            var rate = existingRating.get();
+            rate.setRating(rating);
+            ratingRepository.save(rate);
+        } else {
+            var rate = new cz.tony.skyinterview.entity.Rating();
+            rate.setUser(user);
+            rate.setMovie(movie);
+            rate.setRating(rating);
+            ratingRepository.save(rate);
+        }
 
-        String email = authenticatedUser.getName();
-
-        User user = userRepository.findById(email)
-                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
-
-        Rating rating = ratingRepository.findByUserAndMovie(user, movie)
-                .orElseThrow(() -> new NotFoundException("Rating not found for user: " + email + " and movie: " + movieId));
-
-        ratingRepository.delete(rating);
-
-        updateAverageRating(movieId, movie);
-
-        return new MovieDto(movie);
+        updateAverageRating(movie);
     }
 
-    private void updateAverageRating(final Long movieId, final Movie movie) {
-        float averageRating = (float) ratingRepository.findByMovieId(movieId)
+    public Optional<Rating> getUserRatingForMovie(User user, Movie movie) {
+        return ratingRepository.findByUserAndMovie(user, movie);
+    }
+
+    public void deleteRating(User user, Movie movie) {
+        var existingRating = ratingRepository.findByUserAndMovie(user, movie);
+        existingRating.ifPresent(ratingRepository::delete);
+
+        updateAverageRating(movie);
+    }
+
+    // TODO: There certainly is a better way how to do this with a single query
+    private void updateAverageRating(final Movie movie) {
+        float averageRating = (float) ratingRepository.findByMovieId(movie.getId())
                 .stream()
                 .mapToInt(Rating::getRating)
                 .average()
@@ -123,5 +108,4 @@ public class MovieRatingService {
         movie.setAverageRating(averageRating);
         movieRepository.save(movie);
     }
-
 }

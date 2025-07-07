@@ -11,11 +11,6 @@ public class UserDto {
     private final String email;
     private final String name;
 
-    public UserDto(User user) {
-        this.email = user.getEmail();
-        this.name = user.getName();
-    }
-
     public UserDto(String email, String name) {
         this.email = email;
         this.name = name;

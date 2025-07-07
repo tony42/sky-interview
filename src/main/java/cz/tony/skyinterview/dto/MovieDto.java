@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import cz.tony.skyinterview.entity.Movie;
+import cz.tony.skyinterview.mapper.UserMapper;
 
 /**
  * @author Antonin.Karasek
@@ -18,15 +19,11 @@ public class MovieDto {
 
     private final List<RatingDto> ratings;
 
-    public MovieDto(Movie movie) {
-        this.id = movie.getId();
-        this.name = movie.getName();
-        this.averageRating = movie.getAverageRating();
-        this.ratings = movie.getRatings().stream()
-                .map(rating -> new RatingDto(
-                        new UserDto(rating.getUser()),
-                        rating.getRating()))
-                .toList();
+    public MovieDto(Long id, String name, Float averageRating, List<RatingDto> ratings) {
+        this.id = id;
+        this.name = name;
+        this.averageRating = averageRating;
+        this.ratings = ratings;
     }
 
     public Long getId() {
