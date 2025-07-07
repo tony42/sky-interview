@@ -2,7 +2,10 @@ package cz.tony.skyinterview.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 /**
  * @author Antonin.Karasek
@@ -12,10 +15,12 @@ import jakarta.persistence.Id;
 public class Rating {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String userEmail; // TODO: primary key should be (userEmail, movieId)
-    private Long movieId;
+    private String userEmail;
+    @ManyToOne
+    @JoinColumn(name="movie_id", nullable=false)
+    private Movie movie;
     private int rating;
 
     public Long getId() {
@@ -34,12 +39,12 @@ public class Rating {
         this.userEmail = userEmail;
     }
 
-    public Long getMovieId() {
-        return movieId;
+    public Movie getMovie() {
+        return movie;
     }
 
-    public void setMovieId(final Long movieId) {
-        this.movieId = movieId;
+    public void setMovie(final Movie movie) {
+        this.movie = movie;
     }
 
     public int getRating() {

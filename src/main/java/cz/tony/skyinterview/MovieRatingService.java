@@ -3,6 +3,7 @@ package cz.tony.skyinterview;
 import java.security.Principal;
 import java.util.List;
 
+import cz.tony.skyinterview.dto.MovieDto;
 import cz.tony.skyinterview.entity.Movie;
 import cz.tony.skyinterview.entity.Rating;
 import cz.tony.skyinterview.repo.MovieRepository;
@@ -33,19 +34,20 @@ public class MovieRatingService {
     }
 
     @GetMapping("/")
-    public List<Movie> getMovies() {
-        return movieRepository.findAll();
+    public List<MovieDto> getMovies() {
+        return movieRepository.findAll().stream()
+                .map(MovieDto::new).toList();
     }
 
-
     @GetMapping("/{id}")
-    public Movie getMovie(@PathVariable("id") Long movieId) {
+    public MovieDto getMovie(@PathVariable("id") Long movieId) {
         return movieRepository.findById(movieId)
+                .map(MovieDto::new)
                 .orElseThrow(() -> new NotFoundException("Movie not found with id: " + movieId));
     }
 
     @PutMapping("/{id}/rate")
-    public Movie rateMovie(Principal authenticatedUser,
+    public MovieDto rateMovie(Principal authenticatedUser,
                            @PathVariable("id") Long movieId,
                            @RequestParam("rating") int rating) {
         Movie movie = movieRepository.findById(movieId)
@@ -53,7 +55,7 @@ public class MovieRatingService {
 
         String email = authenticatedUser.getName();
 
-        ratingRepository.findByUserEmailAndMovieId(email, movieId)
+        ratingRepository.findByUserEmailAndMovie(email, movie)
                 .ifPresentOrElse(existingRating -> {
                     // Update existing rating
                     existingRating.setRating(rating);
@@ -62,11 +64,20 @@ public class MovieRatingService {
                     // Create new rating if it doesn't exist
                     Rating newRating = new Rating();
                     newRating.setUserEmail(email);
-                    newRating.setMovieId(movieId);
+                    newRating.setMovie(movie);
                     newRating.setRating(rating);
                     ratingRepository.save(newRating);
                 });
 
-        return movie; // TODO: return movie Dto
+        float averageRating = (float) ratingRepository.findByMovieId(movieId)
+                .stream()
+                .mapToInt(Rating::getRating)
+                .average()
+                .orElse(0.0f);
+
+        movie.setAverageRating(averageRating);
+        movieRepository.save(movie);
+
+        return new MovieDto(movie);
     }
 }
