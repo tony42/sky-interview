@@ -1,6 +1,7 @@
 package cz.tony.skyinterview.entity;
 
 import java.util.List;
+import java.util.Objects;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -22,6 +23,16 @@ public class Movie {
     @OneToMany(mappedBy = "movie")
     private List<Rating> ratings;
     private Float averageRating;
+
+    public Movie() {
+    }
+
+    public Movie(final Long Id, final String name, final List<Rating> ratings, final Float averageRating) {
+        this.id = Id;
+        this.name = name;
+        this.ratings = ratings;
+        this.averageRating = averageRating;
+    }
 
     public Long getId() {
         return id;
@@ -53,6 +64,20 @@ public class Movie {
 
     public void setAverageRating(final Float averageRating) {
         this.averageRating = averageRating;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Movie movie = (Movie) o;
+        return Objects.equals(id, movie.id) && Objects.equals(name, movie.name) && Objects.equals(ratings, movie.ratings)
+                && Objects.equals(averageRating, movie.averageRating);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, name, ratings, averageRating);
     }
 
 }

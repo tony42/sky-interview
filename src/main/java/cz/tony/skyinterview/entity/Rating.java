@@ -1,5 +1,7 @@
 package cz.tony.skyinterview.entity;
 
+import java.util.Objects;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -55,6 +57,20 @@ public class Rating {
 
     public void setRating(final int rating) {
         this.rating = rating;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Rating rating1 = (Rating) o;
+        return rating == rating1.rating && Objects.equals(id, rating1.id) && Objects.equals(user, rating1.user) && Objects.equals(
+                movie, rating1.movie);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, user, movie, rating);
     }
 
 }
