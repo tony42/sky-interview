@@ -13,6 +13,7 @@ import cz.tony.skyinterview.repo.UserRepository;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import org.springframework.util.ObjectUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -86,6 +87,33 @@ public class MovieRatingService {
                     ratingRepository.save(newRating);
                 });
 
+        updateAverageRating(movieId, movie);
+
+        return new MovieDto(movie);
+    }
+
+    @DeleteMapping("/{id}/rate")
+    public MovieDto deleteRating(Principal authenticatedUser,
+                                 @PathVariable("id") Long movieId) {
+        Movie movie = movieRepository.findById(movieId)
+                .orElseThrow(() -> new NotFoundException("Movie not found with id: " + movieId));
+
+        String email = authenticatedUser.getName();
+
+        User user = userRepository.findById(email)
+                .orElseThrow(() -> new NotFoundException("User not found with email: " + email));
+
+        Rating rating = ratingRepository.findByUserAndMovie(user, movie)
+                .orElseThrow(() -> new NotFoundException("Rating not found for user: " + email + " and movie: " + movieId));
+
+        ratingRepository.delete(rating);
+
+        updateAverageRating(movieId, movie);
+
+        return new MovieDto(movie);
+    }
+
+    private void updateAverageRating(final Long movieId, final Movie movie) {
         float averageRating = (float) ratingRepository.findByMovieId(movieId)
                 .stream()
                 .mapToInt(Rating::getRating)
@@ -94,7 +122,6 @@ public class MovieRatingService {
 
         movie.setAverageRating(averageRating);
         movieRepository.save(movie);
-
-        return new MovieDto(movie);
     }
+
 }
