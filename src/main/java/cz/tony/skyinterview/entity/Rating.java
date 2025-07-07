@@ -17,7 +17,9 @@ public class Rating {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String userEmail;
+    @ManyToOne
+    @JoinColumn(name="user_email", nullable=false)
+    private User user;
     @ManyToOne
     @JoinColumn(name="movie_id", nullable=false)
     private Movie movie;
@@ -31,12 +33,12 @@ public class Rating {
         this.id = id;
     }
 
-    public String getUserEmail() {
-        return userEmail;
+    public User getUser() {
+        return user;
     }
 
-    public void setUserEmail(final String userEmail) {
-        this.userEmail = userEmail;
+    public void setUser(final User user) {
+        this.user = user;
     }
 
     public Movie getMovie() {

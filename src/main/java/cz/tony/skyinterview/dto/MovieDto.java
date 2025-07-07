@@ -11,19 +11,21 @@ import cz.tony.skyinterview.entity.Movie;
  */
 public class MovieDto {
 
-    private Long id;
-    private String name;
+    private final Long id;
+    private final String name;
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Float averageRating;
+    private final Float averageRating;
 
-    private List<RatingDto> ratings;
+    private final List<RatingDto> ratings;
 
     public MovieDto(Movie movie) {
         this.id = movie.getId();
         this.name = movie.getName();
         this.averageRating = movie.getAverageRating();
         this.ratings = movie.getRatings().stream()
-                .map(rating -> new RatingDto(rating.getUserEmail(), rating.getRating()))
+                .map(rating -> new RatingDto(
+                        new UserDto(rating.getUser()),
+                        rating.getRating()))
                 .toList();
     }
 

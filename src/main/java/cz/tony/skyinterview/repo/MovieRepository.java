@@ -1,5 +1,7 @@
 package cz.tony.skyinterview.repo;
 
+import java.util.List;
+
 import cz.tony.skyinterview.entity.Movie;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -11,4 +13,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
+    List<Movie> findAllByAverageRatingNotNullOrderByAverageRatingDesc();
 }

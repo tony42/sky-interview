@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import cz.tony.skyinterview.entity.Movie;
 import cz.tony.skyinterview.entity.Rating;
+import cz.tony.skyinterview.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +16,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RatingRepository extends JpaRepository<Rating, Long> {
 
-    Optional<Rating> findByUserEmailAndMovie(String userEmail, Movie movie);
+    Optional<Rating> findByUserAndMovie(User user, Movie movie);
 
     List<Rating> findByMovieId(Long movieId);
 

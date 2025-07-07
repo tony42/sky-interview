@@ -6,16 +6,16 @@ package cz.tony.skyinterview.dto;
  */
 public class RatingDto {
 
-    private String userEmail;
-    private int rating;
+    private final UserDto user;
+    private final int rating;
 
-    public RatingDto(String userEmail, int rating) {
-        this.userEmail = userEmail;
+    public RatingDto(UserDto user, int rating) {
+        this.user = user;
         this.rating = rating;
     }
 
-    public String getUserEmail() {
-        return userEmail;
+    public UserDto getUser() {
+        return user;
     }
 
     public int getRating() {
